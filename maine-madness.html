@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maine Madness Bracket</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fbfaf2; --ink:#1d2a1f; --green:#5f9e3c; --dgreen:#1f4d2b;
+    --blue:#2a5fd0; --muted:#7a8274; --pick:#e8f3df; --lose:#b9bdb3; --card:#fff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+  header{padding:18px 16px 8px;text-align:center}
+  h1{font-family:'Archivo Black',sans-serif;margin:0;font-size:30px;color:var(--dgreen);letter-spacing:.5px;text-transform:uppercase}
+  h1 span{color:var(--blue)}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .bar{display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0 2px;flex-wrap:wrap}
+  .progress{font-size:13px;font-weight:600;color:var(--dgreen)}
+  button.small{font:600 12px Inter,sans-serif;border:1px solid var(--green);background:#fff;color:var(--dgreen);border-radius:999px;padding:6px 12px;cursor:pointer}
+  button.small:active{background:var(--pick)}
+  nav{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;gap:6px;overflow-x:auto;padding:10px 12px;border-bottom:1px solid #e3e5d8;scrollbar-width:none}
+  nav::-webkit-scrollbar{display:none}
+  nav a{flex:0 0 auto;text-decoration:none;font:700 13px Inter,sans-serif;color:var(--dgreen);border:1.5px solid var(--green);border-radius:999px;padding:7px 13px;white-space:nowrap}
+  nav a.on{background:var(--dgreen);border-color:var(--dgreen);color:#fff}
+  .region-title{font-family:'Archivo Black',sans-serif;font-style:italic;color:var(--blue);text-transform:uppercase;font-size:20px;margin:16px 16px 2px}
+  .hint{color:var(--muted);font-size:12px;margin:0 16px 8px}
+  .scroller{overflow-x:auto;padding:4px 12px 24px}
+  .grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:14px;min-width:660px}
+  .col{display:flex;flex-direction:column}
+  .col h3{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:0 0 6px;text-align:center}
+  .games{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:10px}
+  .game{background:var(--card);border:1.5px solid var(--green);border-radius:8px;overflow:hidden;box-shadow:0 1px 0 rgba(0,0,0,.04)}
+  .team{display:flex;align-items:center;gap:6px;width:100%;min-height:36px;padding:6px 8px;border:0;background:none;text-align:left;font:600 12.5px/1.2 Inter,sans-serif;color:var(--ink);cursor:pointer;text-transform:uppercase}
+  .team + .team{border-top:1px solid #e3e5d8}
+  .team .seed{flex:0 0 18px;font:700 11px Inter,sans-serif;color:var(--muted);text-align:right}
+  .team .nm{flex:1}
+  .team.win{background:var(--pick);color:var(--dgreen)}
+  .team.win .nm::after{content:" ✓";color:var(--green)}
+  .team.lose{color:var(--lose)}
+  .team.tbd{color:#c5c9bd;font-style:italic;cursor:default;text-transform:none;font-weight:400}
+  .team:not(.tbd):active{background:#f1f6ea}
+  .ff{padding:8px 16px 30px;max-width:520px;margin:0 auto}
+  .ff .label{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:16px 0 6px;font-weight:700}
+  .ff .team{min-height:44px;font-size:14px}
+  .ff .reg{display:block;font:600 10px Inter,sans-serif;color:var(--blue);letter-spacing:.5px;margin-top:2px}
+  .champ{margin-top:22px;text-align:center;border:2px dashed var(--green);border-radius:12px;padding:18px}
+  .champ .t{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .champ .n{font-family:'Archivo Black',sans-serif;font-size:24px;color:var(--dgreen);margin-top:6px;text-transform:uppercase}
+  .champ .n.empty{color:#c5c9bd;font-family:Inter,sans-serif;font-size:15px;font-style:italic;text-transform:none}
+  .modal{position:fixed;inset:0;background:rgba(20,30,20,.45);display:none;align-items:center;justify-content:center;z-index:20;padding:20px}
+  .modal.show{display:flex}
+  .box{background:#fff;border-radius:12px;padding:18px;max-width:340px;width:100%;text-align:center}
+  .box p{margin:0 0 14px;font-size:14px}
+  .box .row{display:flex;gap:8px;justify-content:center}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--dgreen);color:#fff;font-size:13px;padding:8px 14px;border-radius:999px;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>Maine <span>Madness</span></h1>
+  <div class="sub">Tap a pick to advance it. Change a pick anytime and later rounds update.</div>
+  <div class="bar">
+    <span class="progress" id="progress"></span>
+    <button class="small" id="copyBtn">Copy my picks</button>
+    <button class="small" id="resetBtn">Reset</button>
+  </div>
+</header>
+<nav id="tabs"></nav>
+<main id="view"></main>
+
+<div class="modal" id="modal"><div class="box">
+  <p>Clear all your picks and start over?</p>
+  <div class="row"><button class="small" id="noBtn">Cancel</button><button class="small" id="yesBtn" style="background:var(--dgreen);color:#fff">Clear picks</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const REGIONS = [
+  {id:"classics", name:"The Classics", teams:["Lobster Roll (Cold, Mayo)","Red Snapper","Whoopie Pies","Moxie","Bean Boots","Flannel","Moose","Common Loons","Portland Head Light","Nubble Lighthouse","Acadia National Park","Baxter State Park","Wild Blueberries","Maple Syrup","Stephen King","Patrick Dempsey"]},
+  {id:"food", name:"Food Fights", teams:["Lobster Roll (Hot, Butter)","Mussels","Blueberry Pie","Blueberry Jam","Oysters","Italian Sandwich (Amato's)","Maine Craft Beer","Allen's Coffee Brandy","Clam Chowder","Fish Chowder","Needhams","Saltwater Taffy","Maine Diner Breakfast","Eastern Prom Food Trucks","Fried Clams","Crab Roll"]},
+  {id:"culture", name:"Culture & Character", teams:["“Ayuh”","“You Can't Get There From Here”","Pine Tree License Plate","Chickadee License Plate","Leaf Peeping","Maine Maple Sunday Weekend","Valentine's Day Bandit","Buoy/Lobster Trap Trees","Renys","Marden's","Summer Things (Upta Camp + Beach)","Winter Things (Snowmobiling + Ice Fishing)","Sea Dogs","Hearts of Pine","“The Way Life Should Be”","“Vacationland”"]},
+  {id:"places", name:"Places & Landmarks", teams:["Acadia Sunrise (Cadillac Mountain)","Western Maine Sunset","Peaks Island","Sebago Lake","Katahdin","Rangeley Lakes","Casco Bay Seals","Puffins","Old Orchard Beach Pier","Reid State Park","Common Ground Fair","Maine Lobster Festival","Paul Bunyan Statue","Mount Battie","Bar Harbor","Two Lights State Park"]}
+];
+const SEEDS=[1,16,8,9,5,12,4,13,6,11,3,14,7,10,2,15];
+const ROUNDS=["First Round","Second Round","Sweet 16","Elite 8"];
+const KEY="maine-madness-picks-v1";
+const seedOf={}, regionOf={};
+REGIONS.forEach(r=>r.teams.forEach((t,i)=>{seedOf[t]=SEEDS[i];regionOf[t]=r.name;}));
+
+let picks={};
+try{picks=JSON.parse(localStorage.getItem(KEY)||"{}")||{};}catch(e){picks={};}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(picks));}catch(e){}}
+
+// entrants of a game
+function entrants(g){
+  const p=g.split("-");
+  if(p[0]==="ff"){
+    if(p[1]==="final") return [picks["ff-semi-0"]||null, picks["ff-semi-1"]||null];
+    const i=+p[2]; const a=i===0?["classics","food"]:["culture","places"];
+    return a.map(id=>picks[id+"-3-0"]||null);
+  }
+  const reg=REGIONS.find(r=>r.id===p[0]), r=+p[1], i=+p[2];
+  if(r===0) return [reg.teams[2*i],reg.teams[2*i+1]];
+  return [picks[`${p[0]}-${r-1}-${2*i}`]||null, picks[`${p[0]}-${r-1}-${2*i+1}`]||null];
+}
+const ORDER=[];
+REGIONS.forEach(reg=>{for(let r=0;r<4;r++)for(let i=0;i<8>>r;i++)ORDER.push(`${reg.id}-${r}-${i}`);});
+ORDER.push("ff-semi-0","ff-semi-1","ff-final");
+function validate(){ORDER.forEach(g=>{if(picks[g]&&!entrants(g).includes(picks[g]))delete picks[g];});}
+validate();
+
+function pick(g,t){
+  if(!t) return;
+  if(picks[g]===t) delete picks[g]; else picks[g]=t;
+  validate(); save(); render();
+}
+
+function teamBtn(g,t,big){
+  if(!t) return `<button class="team tbd" disabled><span class="seed"></span><span class="nm">TBD</span></button>`;
+  const w=picks[g]; const cls=w?(w===t?"win":"lose"):"";
+  const reg=big?`<span class="reg">${regionOf[t]}</span>`:"";
+  return `<button class="team ${cls}" data-g="${g}" data-t="${encodeURIComponent(t)}"><span class="seed">${seedOf[t]}</span><span class="nm">${t}${reg}</span></button>`;
+}
+function gameHTML(g,big){const [a,b]=entrants(g);return `<div class="game">${teamBtn(g,a,big)}${teamBtn(g,b,big)}</div>`;}
+
+const TABS=[...REGIONS.map(r=>({id:r.id,name:r.name})),{id:"final-four",name:"Final Four"}];
+function current(){const h=location.hash.slice(1);return TABS.some(t=>t.id===h)?h:"classics";}
+
+function render(){
+  const cur=current();
+  document.getElementById("tabs").innerHTML=TABS.map(t=>`<a href="#${t.id}" class="${t.id===cur?"on":""}">${t.name}</a>`).join("");
+  const done=ORDER.filter(g=>picks[g]).length;
+  document.getElementById("progress").textContent=`${done} / ${ORDER.length} picks`;
+  const v=document.getElementById("view");
+  if(cur==="final-four"){
+    const champ=picks["ff-final"];
+    v.innerHTML=`<div class="region-title" style="text-align:center">Final Four</div>
+    <div class="ff">
+      <div class="label">Semifinal · Classics vs. Food Fights</div>${gameHTML("ff-semi-0",true)}
+      <div class="label">Semifinal · Culture vs. Places</div>${gameHTML("ff-semi-1",true)}
+      <div class="label">Championship</div>${gameHTML("ff-final",true)}
+      <div class="champ"><div class="t">Most Maine Thing</div><div class="n ${champ?"":"empty"}">${champ||"Pick your way here"}</div></div>
+    </div>`;
+  } else {
+    const reg=REGIONS.find(r=>r.id===cur);
+    let cols="";
+    for(let r=0;r<4;r++){
+      let gs="";for(let i=0;i<8>>r;i++)gs+=gameHTML(`${reg.id}-${r}-${i}`);
+      cols+=`<div class="col"><h3>${ROUNDS[r]}</h3><div class="games">${gs}</div></div>`;
+    }
+    v.innerHTML=`<div class="region-title">${reg.name}</div><div class="hint">Swipe sideways for later rounds →</div><div class="scroller"><div class="grid">${cols}</div></div>`;
+  }
+}
+document.getElementById("view").addEventListener("click",e=>{
+  const b=e.target.closest(".team[data-g]"); if(!b) return;
+  const sc=document.querySelector(".scroller"); const x=sc?sc.scrollLeft:0;
+  pick(b.dataset.g,decodeURIComponent(b.dataset.t));
+  const sc2=document.querySelector(".scroller"); if(sc2) sc2.scrollLeft=x;
+});
+window.addEventListener("hashchange",()=>{render();window.scrollTo(0,0);});
+
+const modal=document.getElementById("modal");
+document.getElementById("resetBtn").onclick=()=>modal.classList.add("show");
+document.getElementById("noBtn").onclick=()=>modal.classList.remove("show");
+document.getElementById("yesBtn").onclick=()=>{picks={};save();modal.classList.remove("show");render();};
+
+function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1800);}
+document.getElementById("copyBtn").onclick=async()=>{
+  const lines=["MAINE MADNESS — my picks",""];
+  REGIONS.forEach(reg=>{
+    lines.push(reg.name.toUpperCase());
+    for(let r=1;r<4;r++){const w=[];for(let i=0;i<8>>r;i++)w.push(picks[`${reg.id}-${r}-${i}`]||"—");lines.push(`  ${ROUNDS[r]}: ${w.join(", ")}`);}
+    lines.push(`  Region champ: ${picks[reg.id+"-3-0"]||"—"}`,"");
+  });
+  lines.push(`Finals: ${picks["ff-semi-0"]||"—"} vs. ${picks["ff-semi-1"]||"—"}`);
+  lines.push(`CHAMPION: ${picks["ff-final"]||"—"}`);
+  try{await navigator.clipboard.writeText(lines.join("\n"));toast("Copied!");}catch(e){toast("Couldn't copy here");}
+};
+render();
+</script>
+</body>
+</html>
